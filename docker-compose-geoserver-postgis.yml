@@ -1,0 +1,60 @@
+version: '3'
+services:
+  geoserver:
+    #build:
+    #  context: .
+    #  args:
+    #    - GEOSERVER_VERSION=2.25.2
+    #    - CORS_ENABLED=true
+    #    - CORS_ALLOWED_METHODS=GET,POST,PUT,HEAD,OPTIONS
+    # registry.antt.gov.br/geoserver/geoserver:2.25.3
+    # docker.osgeo.org/geoserver:2.25.3  
+    image: registry.antt.gov.br/geoserver/geoserver:2.25.3-4
+    container_name: geoserver-postgis
+    ports:
+      - "80:8080"
+      - "443:8443"
+    environment:
+      - INSTALL_EXTENSIONS=true
+      - EXTRA_JAVA_OPTS=-Xms1G -Xmx2G
+      - POSTGRES_JNDI_ENABLED=true
+      - POSTGRES_HOST=10.50.2.22
+      - POSTGRES_PORT=5444
+      - POSTGRES_DB=bd_geo
+      - POSTGRES_USERNAME=usr_geo_dev
+      - POSTGRES_PASSWORD=A@12345678
+      - POSTGRES_JNDI_RESOURCE_NAME=jdbc/postgres
+      #- CONFIG_OVERRIDES_DIR=/opt/config_overrides
+      #- CORS_ALLOWED_HEADERS=*
+      #- CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,HEAD,OPTIONS
+      #- CORS_ALLOWED_ORIGINS=*
+      #- CORS_ALLOW_CREDENTIALS=false
+      #- CORS_ENABLED=true
+      - ROOT_WEBAPP_REDIRECT=true
+      - HTTPS_ENABLED=true
+      - HTTPS_KEYSTORE_FILE=/opt/config/keystore.jks
+      - HTTPS_KEYSTORE_PASSWORD=36df4e364ffa8405279c26499a193dd48fcc614f
+      - HTTPS_KEY_ALIAS=server
+      - STABLE_EXTENSIONS="control-flow,csw,css,db2,excel,gdalh2,mbstyle,monitor,mysql,ogr-wfs,ogrwps,oracle,params-extractor,printing,sqlserver,vectortiles,wps,postegresql,ogr-datastore,geopkg ,csv,shapefile,wps-remote,gwc-distributed,gwc-mobile,importer,notification,backup-restore,cas,authkey"
+    volumes:
+      - ./geoserver_data:/opt/geoserver_data/:Z
+    #  - ./additional_libs:/opt/additional_libs:Z # by mounting this we can install libs from host on startup
+    healthcheck:
+      test: curl --fail "http://localhost:8080/geoserver/web/wicket/resource/org.geoserver.web.GeoServerBasePage/img/logo.png" || exit 1
+      interval: 1m
+      retries: 3
+      timeout: 20s
+  #postgis:
+  #  image: postgis/postgis:16-3.5-alpine  #@sha256:851c78685563fbf56218f06fab0f292a19642f43233d873b002ca1b033e15c0d
+  #  ports:
+  #    - "5555:5432"
+  #  environment:
+  #    POSTGRES_USER: geoserver
+  #    POSTGRES_PASSWORD: geoserver
+  #  volumes:
+  #    - ./postgis/postgresql_data:/var/lib/postgresql/data:Z
+  #  healthcheck:
+  #    test: pg_isready -U geoserver -h localhost -t 5 || exit 1
+  #    interval: 10s
+  #    retries: 5
+  #    timeout: 10s

@@ -1,0 +1,70 @@
+stages:
+  - build
+  - clean
+
+.docker-build:
+  stage: build
+  image: docker:stable
+  tags:
+    - RunnerWebSIS01
+  before_script:
+    - echo "Logando no Docker Registry..."
+    - echo $ANTT_CI_REGISTRY_PASSWORD | docker login -u $ANTT_CI_REGISTRY_USER --password-stdin $ANTT_CI_REGISTRY_HOST
+    - echo "logado com sucesso."
+  script:
+    - |
+      IFS='/' read -ra ADDR <<< "$CI_PROJECT_PATH"
+      PROJECT_GIT_PATH="${ADDR[1]}"
+
+      echo "Projeto GIT setado como: $PROJECT_GIT_PATH"
+
+      IMAGE_NAME="$ANTT_CI_REGISTRY_HOST/$PROJECT_GIT_PATH/$CI_PROJECT_NAME"
+      IMAGE_TAG="$CI_COMMIT_BRANCH-$CI_COMMIT_SHORT_SHA"
+  
+      echo "Construção Imagem Docker com a tag: $IMAGE_TAG"
+      cd ./docker/build 
+      docker build -t $IMAGE_TAG --build-arg VERSION=$CI_COMMIT_SHORT_SHA .
+      echo "Tageando imagens de acordo com ambientes 'develop/homolog/test/main(production)'"     
+      if [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        docker tag $IMAGE_TAG $IMAGE_NAME:latest
+        docker push $IMAGE_NAME:latest
+        echo "Construção Imagem Docker padrão de produção: $IMAGE_NAME:latest"
+      else
+        docker tag $IMAGE_TAG $IMAGE_NAME:latest-$CI_COMMIT_BRANCH 
+        docker push $IMAGE_NAME:latest-$CI_COMMIT_BRANCH
+        echo "Construção Imagem Docker padrão branch e ultima versão criada: $IMAGE_NAME:latest-$CI_COMMIT_BRANCH "
+      fi
+      echo "Construção Imagem Docker padrão branch e GIT Version: $IMAGE_NAME:$IMAGE_TAG"
+      echo "Docker image pushed."
+
+docker-build:
+  stage: build
+  extends: .docker-build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "homolog" || $CI_COMMIT_BRANCH == "test"'
+      when: on_success
+    - when: never 
+
+clean: 
+  stage: clean
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "homolog" || $CI_COMMIT_BRANCH == "test" || $CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - when: never 
+  needs:
+    - job: docker-build
+      optional: true
+  tags:
+    - RunnerWebSIS01
+  script:
+    - echo "Cleaning up"
+    - docker container prune -f
+    - docker image prune -f
+    - docker volume prune -f
+    - docker system prune -a -f
+    - docker builder prune -f 
+    - rm -rf "%CACHE_PATH%/%CI_PIPELINE_ID%"
+  when: always
+  

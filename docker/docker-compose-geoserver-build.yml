@@ -1,0 +1,21 @@
+version: '3.8'
+services:
+  geoserver:
+    build:
+      context: ./build
+      #image : docker.osgeo.org/geoserver:2.25.3 
+      dockerfile: Dockerfile  
+    container_name: geoserver
+    ports:
+      - "8070:8080"
+    # environment:
+      #- GEOSERVER_DATA_DIR=/opt/geoserver/data_dir
+      #- GEOSERVER_REQUIRE_FILE=/opt/geoserver_data/global.xml
+      #- GEOSERVER_ADMIN_PASSWORD=admin  # Adicione esta linha com a nova senha
+      #- INSTALL_EXTENSIONS=true
+      #- STABLE_EXTENSIONS="control-flow,css,db2,excel,gdalh2,mbstyle,monitor,mysql,ogr-wfs,ogrwps,oracle,params-extractor,printing,sqlserver,vectortiles,wps,postegresql,ogr-datastore,geopkg ,csv,shapefile,wps-remote,gwc-distributed,gwc-mobile,importer,notification,backup-restore,cas,authkey"
+    #volumes:
+      #- geoserver_data:/opt/geoserver/data_dir
+      #- ./extensions:/opt/geoserver/webapps/geoserver/WEB-INF/lib
+volumes:
+  geoserver_data:
